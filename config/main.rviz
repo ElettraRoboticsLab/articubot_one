@@ -45,21 +45,19 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: true
+        All Enabled: false
+        base_footprint:
+          Value: false
         base_link:
-          Value: true
-        camera_link:
-          Value: true
-        camera_link_optical:
-          Value: true
+          Value: false
         caster_wheel:
-          Value: true
+          Value: false
         chassis:
-          Value: true
+          Value: false
         face_link:
-          Value: true
+          Value: false
         laser_frame:
-          Value: true
+          Value: false
         left_wheel:
           Value: true
         odom:
