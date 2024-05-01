@@ -34,6 +34,7 @@ def generate_launch_description():
                 )])
     )
 
+
     twist_mux_params = os.path.join(get_package_share_directory(package_name),'config','twist_mux.yaml')
     twist_mux = Node(
             package="twist_mux",
@@ -41,7 +42,6 @@ def generate_launch_description():
             parameters=[twist_mux_params],
             remappings=[('/cmd_vel_out','/diff_cont/cmd_vel_unstamped')]
         )
-
 
     robot_description = Command(['ros2 param get --hide-type /robot_state_publisher robot_description'])
 
@@ -95,6 +95,46 @@ def generate_launch_description():
     )
 
 
+    ## -- Above from launch_base_topo.launch.py
+
+    # Lidar
+    lidar = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([os.path.join(
+                    get_package_share_directory(package_name),'launch','rplidar.launch.py'
+                )])
+    )
+
+    # Localization
+    # ros2 launch articubot_one localization_launch.py map:=/topo_ws/maps/MAP_NAME/map.yaml
+    localization = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([os.path.join(
+                    get_package_share_directory(package_name),'launch','localization_launch.py'
+                )]), launch_arguments={'map': '/topo_ws/maps/alex_casa/map.yaml'}.items()
+    )
+
+    delayed_localization = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=controller_manager,
+            on_start=[localization],
+        )
+    )
+
+    # Navigation
+    # ros2 launch articubot_one navigation_launch.py
+    navigation = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([os.path.join(
+                    get_package_share_directory(package_name),'launch','navigation_launch.py'
+                )])
+    )
+
+    delayed_navigation = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=controller_manager,
+            on_start=[navigation],
+        )
+    )
+
+
     # Launch them all!
     return LaunchDescription([
         rsp,
@@ -104,4 +144,7 @@ def generate_launch_description():
         delayed_diff_drive_spawner,
         delayed_joint_broad_spawner,
         delayed_foxglove_bridge,
+        lidar,
+        delayed_localization,
+        delayed_navigation,
     ])

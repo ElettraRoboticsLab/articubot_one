@@ -43,17 +43,6 @@ def generate_launch_description():
             remappings=[('/cmd_vel_out','/diff_cont/cmd_vel_unstamped')]
         )
 
-    # Lidar
-    lidar = IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([os.path.join(
-                    get_package_share_directory(package_name),'launch','rplidar.launch.py'
-                )])
-    )
-
-
-
-
-
     robot_description = Command(['ros2 param get --hide-type /robot_state_publisher robot_description'])
 
     controller_params_file = os.path.join(get_package_share_directory(package_name),'config','my_controllers.yaml')
@@ -93,6 +82,28 @@ def generate_launch_description():
         )
     )
 
+    # Foxglove: like rviz2 but in a browser - https://foxglove.dev/ros
+    foxglove_bridge = Node(
+        package="foxglove_bridge",
+        executable="foxglove_bridge"
+    )
+
+    # Delay the start of lidar_node by 10 seconds using TimerAction
+    delayed_foxglove_bridge = TimerAction(
+        period=7.0,
+        actions=[foxglove_bridge]
+    )
+
+
+    ## -- Above from launch_base_topo.launch.py
+
+    # Lidar
+    lidar = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([os.path.join(
+                    get_package_share_directory(package_name),'launch','rplidar.launch.py'
+                )])
+    )
+
     # Slam toolbox
     # ros2 launch slam_toolbox online_async_launch.py param_file:=./src/articubot_one/config/mapper_params_online_async.yaml use_sim_time:=false
     slam_toolbox_params_file = os.path.join(get_package_share_directory(package_name),'config','mapper_params_online_async.yaml')
@@ -100,7 +111,7 @@ def generate_launch_description():
     slam_toolbox = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
                     get_package_share_directory(package_name),'launch','online_async_launch.py'
-                )]), launch_arguments={'use_sim_time': 'false', 'params_file': controller_params_file}.items()
+                )]), launch_arguments={'use_sim_time': 'false', 'params_file': slam_toolbox_params_file}.items()
     )
 
     delayed_slam_toolbox = RegisterEventHandler(
@@ -132,10 +143,11 @@ def generate_launch_description():
         rsp,
         joystick,
         twist_mux,
-        lidar,
         delayed_controller_manager,
         delayed_diff_drive_spawner,
         delayed_joint_broad_spawner,
+        delayed_foxglove_bridge,
+        lidar,
         delayed_slam_toolbox,
         delayed_navigation
     ])
