@@ -1,56 +1,49 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
-
-
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, TimerAction
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessStart
-
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import Command
 from launch_ros.actions import Node
 
 
-
 def generate_launch_description():
-
-
     # Include the robot_state_publisher launch file, provided by our own package. Force sim time to be enabled
     # !!! MAKE SURE YOU SET THE PACKAGE NAME CORRECTLY !!!
 
-    package_name='articubot_one' #<--- CHANGE ME
+    package_name = "articubot_one"  # <--- CHANGE ME
 
     rsp = IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([os.path.join(
-                    get_package_share_directory(package_name),'launch','rsp.launch.py'
-                )]), launch_arguments={'use_sim_time': 'false', 'use_ros2_control': 'true'}.items()
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory(package_name), "launch", "rsp.launch.py"
+        )]), launch_arguments={"use_sim_time": "false", "use_ros2_control": "true"}.items()
     )
 
     joystick = IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([os.path.join(
-                    get_package_share_directory(package_name),'launch','joystick.launch.py'
-                )])
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory(package_name), "launch", "joystick.launch.py"
+        )])
     )
 
-
-    twist_mux_params = os.path.join(get_package_share_directory(package_name),'config','twist_mux.yaml')
+    twist_mux_params = os.path.join(get_package_share_directory(package_name), "config", "twist_mux.yaml")
     twist_mux = Node(
-            package="twist_mux",
-            executable="twist_mux",
-            parameters=[twist_mux_params],
-            remappings=[('/cmd_vel_out','/diff_cont/cmd_vel_unstamped')]
-        )
+        package="twist_mux",
+        executable="twist_mux",
+        parameters=[twist_mux_params],
+        remappings=[("/cmd_vel_out", "/diff_cont/cmd_vel_unstamped")]
+    )
 
-    robot_description = Command(['ros2 param get --hide-type /robot_state_publisher robot_description'])
+    robot_description = Command(["ros2 param get --hide-type /robot_state_publisher robot_description"])
 
-    controller_params_file = os.path.join(get_package_share_directory(package_name),'config','my_controllers.yaml')
+    controller_params_file = os.path.join(get_package_share_directory(package_name), "config", "my_controllers.yaml")
 
     controller_manager = Node(
         package="controller_manager",
         executable="ros2_control_node",
-        parameters=[{'robot_description': robot_description},
+        parameters=[{"robot_description": robot_description},
                     controller_params_file]
     )
 
@@ -88,28 +81,27 @@ def generate_launch_description():
         executable="foxglove_bridge"
     )
 
-    # Delay the start of lidar_node by 10 seconds using TimerAction
+    # Delay the start of lidar_node by x seconds using TimerAction
     delayed_foxglove_bridge = TimerAction(
         period=7.0,
         actions=[foxglove_bridge]
     )
 
-
     ## -- Above from launch_base_topo.launch.py
 
     # Lidar
     lidar = IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([os.path.join(
-                    get_package_share_directory(package_name),'launch','rplidar.launch.py'
-                )])
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory(package_name), "launch", "rplidar.launch.py"
+        )])
     )
 
     # Localization
     # ros2 launch articubot_one localization_launch.py map:=/topo_ws/maps/MAP_NAME/map.yaml
     localization = IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([os.path.join(
-                    get_package_share_directory(package_name),'launch','localization_launch.py'
-                )]), launch_arguments={'map': '/topo_ws/maps/alex_casa/map.yaml'}.items()
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory(package_name), "launch", "localization_launch.py"
+        )]), launch_arguments={"map": "/topo_ws/maps/alex_casa/map.yaml"}.items()
     )
 
     delayed_localization = RegisterEventHandler(
@@ -122,9 +114,9 @@ def generate_launch_description():
     # Navigation
     # ros2 launch articubot_one navigation_launch.py
     navigation = IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([os.path.join(
-                    get_package_share_directory(package_name),'launch','navigation_launch.py'
-                )])
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory(package_name), "launch", "navigation_launch.py"
+        )])
     )
 
     delayed_navigation = RegisterEventHandler(
@@ -133,7 +125,6 @@ def generate_launch_description():
             on_start=[navigation],
         )
     )
-
 
     # Launch them all!
     return LaunchDescription([
